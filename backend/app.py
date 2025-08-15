@@ -121,5 +121,34 @@ def generate():
     return jsonify({"reply": reply})
 
 
+@app.route("/history", methods=["GET"])
+def history():
+    try:
+        limit = int(request.args.get("limit", 5))
+        offset = int(request.args.get("offset", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "limit/offset must be integers"}), 400
+
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT id, prompt, response, created_at
+        FROM conversations
+        ORDER BY datetime(created_at) DESC, id DESC
+        LIMIT ? OFFSET ?
+        """,
+        (limit, offset),
+    ).fetchall()
+
+    return jsonify([
+        {
+            "id": r["id"],
+            "prompt": r["prompt"],
+            "response": r["response"],
+            "created_at": r["created_at"],
+        } for r in rows
+    ])
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5050, debug=True)

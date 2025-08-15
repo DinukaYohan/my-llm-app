@@ -21,6 +21,19 @@
     <div id="reply" class="mt-4 p-2 bg-gray-50 border rounded min-h-[4rem]"></div>
   </div>
 
+
+    <!-- RIGHT: history panel -->
+  <aside class="hidden lg:block w-[360px]">
+      <div class="sticky top-8 h-[80vh] overflow-y-auto p-4 bg-orange-100 border-2 border-orange-400 rounded-xl">
+        <h2 class="text-center text-sm text-orange-700">history</h2>
+        <div id="history-list" class="space-y-3 mt-3"></div>
+        <button id="load-more" class="mt-4 w-full py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+          Load more
+        </button>
+      </div>
+    </aside>
+  </div>
+
   <script>
     document.getElementById("send").onclick = async () => {
       const prompt = document.getElementById("prompt").value;
@@ -33,5 +46,42 @@
       document.getElementById("reply").textContent = reply;
     };
   </script>
+
+<script>
+const escapeHtml = s => (s||"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let offset = 0, limit = 5;
+
+async function loadHistory(append=false){
+  const res = await fetch(`/history?limit=${limit}&offset=${offset}`);
+  if(!res.ok){ console.error("history fetch failed", res.status); return; }
+  const items = await res.json();
+  const list = document.getElementById("history-list");
+  if(!append) list.innerHTML = "";
+  for(const it of items){
+    const card = document.createElement("div");
+    card.className = "p-4 bg-white rounded-xl shadow border";
+    card.innerHTML = `
+      <div class="text-[11px] text-gray-400">${it.created_at}</div>
+      <div class="mt-2"><b>Q:</b> ${escapeHtml(it.prompt)}</div>
+      <div class="mt-1"><b>A:</b> ${escapeHtml(it.response)}</div>`;
+    list.appendChild(card);
+  }
+  if(items.length < limit) document.getElementById("load-more").disabled = true;
+}
+
+document.getElementById("load-more").addEventListener("click", async ()=>{
+  offset += limit;
+  await loadHistory(true);
+});
+
+loadHistory(); // initial
+
+// refresh after Send
+document.getElementById("send")?.addEventListener("click", async ()=>{
+  setTimeout(()=>{ offset = 0; document.getElementById("load-more").disabled = false; loadHistory(); }, 300);
+});
+</script>
+
+
 </body>
 </html>

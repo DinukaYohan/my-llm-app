@@ -35,6 +35,16 @@ createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify(json));
     }
+
+    if (req.method === "GET" && req.url.startsWith("/history")) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const backendUrl = `http://127.0.0.1:5000/history?${url.searchParams.toString()}`;
+    const r = await fetch(backendUrl);
+    const text = await r.text();
+    res.writeHead(r.status, { "Content-Type": r.headers.get("content-type") || "application/json" });
+    return res.end(text);
+}
+
     res.writeHead(404);
     res.end();
   }
